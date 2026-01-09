@@ -110,7 +110,7 @@ const Reports = () => {
           <Button
             variant="contained"
             color="primary"
-            onClick={() => navigate('/report')}
+            onClick={() => navigate('/report-issue')}
             sx={{ mt: 2 }}
           >
             Submit Your First Report

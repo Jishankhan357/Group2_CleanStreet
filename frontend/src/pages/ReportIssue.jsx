@@ -159,6 +159,32 @@ const LocationPicker = ({ position, onPositionChange, onAddressChange }) => {
   const [mapPosition, setMapPosition] = useState(position || [51.505, -0.09])
   const [address, setAddress] = useState('')
 
+  // Automatically get user's current location on mount if no position provided
+  useEffect(() => {
+    if (!position && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords
+          const coords = [latitude, longitude]
+          setMapPosition(coords)
+          onPositionChange(coords)
+          
+          // Reverse geocode
+          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+            .then(res => res.json())
+            .then(data => {
+              const addr = data.display_name
+              setAddress(addr)
+              onAddressChange(addr)
+            })
+            .catch(err => console.error('Geocoding error:', err))
+        },
+        (error) => console.error('Location error:', error),
+        { enableHighAccuracy: true }
+      )
+    }
+  }, [])
+
   const MapClickHandler = () => {
     useMapEvents({
       click: async (e) => {
@@ -256,8 +282,52 @@ const LocationPicker = ({ position, onPositionChange, onAddressChange }) => {
 }
 
 // Image upload component with preview
-const ImageUpload = ({ images, onImagesChange, maxImages = 5 }) => {
+const ImageUpload = ({ images, onImagesChange, maxImages = 5, onLocationCapture }) => {
   const fileInputRef = useRef(null)
+
+  const captureLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords
+          const coords = [latitude, longitude]
+          
+          // Reverse geocode to get address
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+            )
+            const data = await response.json()
+            const addr = data.display_name
+            
+            // Pass location and address to parent
+            if (onLocationCapture) {
+              onLocationCapture(coords, addr)
+            }
+            
+            toast.success('📍 Location automatically captured from your device')
+          } catch (error) {
+            console.error('Geocoding error:', error)
+            // Still pass coords even if geocoding fails
+            if (onLocationCapture) {
+              onLocationCapture(coords, 'Location captured')
+            }
+            toast.success('📍 Location captured')
+          }
+        },
+        (error) => {
+          toast.error('Unable to get your location: ' + error.message)
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      )
+    } else {
+      toast.error('Geolocation is not supported by your browser')
+    }
+  }
 
   const handleImageUpload = (event) => {
     const files = Array.from(event.target.files)
@@ -283,6 +353,11 @@ const ImageUpload = ({ images, onImagesChange, maxImages = 5 }) => {
     }))
 
     onImagesChange([...images, ...newImages])
+    
+    // AUTOMATIC GPS CAPTURE when first image is added
+    if (images.length === 0 && validImages.length > 0) {
+      captureLocation()
+    }
   }
 
   const handleRemoveImage = (index) => {
@@ -413,6 +488,38 @@ const ReportIssue = () => {
   // Steps
   const steps = ['Category & Details', 'Location', 'Photos', 'Review & Submit']
 
+  // Automatically capture location when user reaches Step 2
+  useEffect(() => {
+    if (activeStep === 1 && !location && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords
+          const coords = [latitude, longitude]
+          setLocation(coords)
+          toast.success('📍 Location automatically captured from your device')
+          
+          // Reverse geocode to get address
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+            )
+            const data = await response.json()
+            const addr = data.display_name || 'Address not found'
+            setAddress(addr)
+          } catch (err) {
+            console.error('Geocoding error:', err)
+            setAddress('Unable to fetch address')
+          }
+        },
+        (error) => {
+          console.error('Location error:', error)
+          toast.error('Unable to get location. Please enable GPS or try adding a photo.')
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      )
+    }
+  }, [activeStep, location])
+
   // Handle category selection
   const handleCategorySelect = (cat) => {
     setCategory(cat)
@@ -426,14 +533,22 @@ const ReportIssue = () => {
 
   // Handle next step
   const handleNext = () => {
-    if (activeStep === 0 && (!category || !title || !description)) {
-      setError('Please fill in all required fields')
-      return
+    if (activeStep === 0) {
+      if (!category || !title || !description) {
+        setError('Please fill in all required fields')
+        return
+      }
+      if (title.length < 5) {
+        setError('Issue title must be at least 5 characters long')
+        return
+      }
+      if (description.length < 10) {
+        setError('Issue description must be at least 10 characters long')
+        return
+      }
     }
-    if (activeStep === 1 && !location) {
-      setError('Please select a location on the map')
-      return
-    }
+    // Step 2 (Location) - Allow proceeding without location as it will be auto-captured in Step 3
+    // No validation needed here
     setError('')
     setActiveStep((prevStep) => prevStep + 1)
   }
@@ -455,12 +570,28 @@ const ReportIssue = () => {
     // Check if user is authenticated
     if (!isAuthenticated) {
       toast.error('Please login to submit a complaint')
-      navigate('/login', { state: { from: '/report' } })
+      navigate('/login', { state: { from: '/report-issue' } })
       return
     }
 
-    if (!category || !title || !description || !location || !address) {
+    if (!category || !title || !description) {
       setError('Please complete all required fields')
+      return
+    }
+
+    if (title.length < 5) {
+      setError('Issue title must be at least 5 characters long')
+      return
+    }
+
+    if (description.length < 10) {
+      setError('Issue description must be at least 10 characters long')
+      return
+    }
+
+    if (!location || !address) {
+      setError('Location is required. Please add at least one photo to auto-capture your GPS location, or go back to Step 2.')
+      toast.error('Please add a photo to capture location automatically')
       return
     }
 
@@ -480,6 +611,8 @@ const ReportIssue = () => {
         isAnonymous,
         allowComments
       }
+
+      console.log('Submitting report data:', reportData)
 
       // Submit report to API
       const response = await axios.post('/api/reports/create', reportData, {
@@ -505,16 +638,18 @@ const ReportIssue = () => {
           setActiveStep(0)
           setSuccess('')
           
-          // Navigate to reports list
-          navigate('/reports')
+          // Navigate to user's reports list
+          navigate('/my-reports')
         }, 2000)
       } else {
         throw new Error(response.data.error || 'Failed to submit report')
       }
 
     } catch (err) {
-      setError(err.message || 'Failed to submit complaint. Please try again.')
-      toast.error('Submission failed. Please try again.')
+      console.error('Report submission error:', err.response?.data || err)
+      const errorMsg = err.response?.data?.errors?.[0]?.msg || err.response?.data?.error || err.message || 'Failed to submit complaint'
+      setError(errorMsg)
+      toast.error(errorMsg)
     } finally {
       setIsSubmitting(false)
     }
@@ -632,7 +767,12 @@ const ReportIssue = () => {
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g., Large garbage pile near Main Street"
                     required
-                    helperText="Be specific and clear about the issue"
+                    error={title.length > 0 && title.length < 5}
+                    helperText={
+                      title.length > 0 && title.length < 5
+                        ? `Minimum 5 characters required (${title.length}/5)`
+                        : `Be specific and clear about the issue (${title.length} characters)`
+                    }
                   />
                 </Grid>
 
@@ -646,7 +786,12 @@ const ReportIssue = () => {
                     rows={4}
                     placeholder="Describe the issue in detail... Include information like: How long has it been there? How severe is it? Any safety concerns?"
                     required
-                    helperText="The more details you provide, the faster it can be resolved"
+                    error={description.length > 0 && description.length < 10}
+                    helperText={
+                      description.length > 0 && description.length < 10
+                        ? `Minimum 10 characters required (${description.length}/10)`
+                        : `The more details you provide, the faster it can be resolved (${description.length} characters)`
+                    }
                   />
                 </Grid>
 
@@ -686,17 +831,36 @@ const ReportIssue = () => {
         {activeStep === 1 && (
           <Box>
             <Typography variant="h6" gutterBottom fontWeight="bold">
-              Select Issue Location
+              Issue Location
             </Typography>
-            <Typography variant="body2" color="text.secondary" paragraph>
-              Click on the map to pinpoint the exact location of the issue
-            </Typography>
+            
+            {location ? (
+              <Alert severity="success" icon={<GpsFixed />} sx={{ mb: 3 }}>
+                <Typography variant="body2">
+                  <strong>✅ Location captured successfully!</strong>
+                </Typography>
+                <Typography variant="caption" display="block" color="text.secondary">
+                  Using your current GPS coordinates - This prevents misuse and ensures accurate reporting
+                </Typography>
+              </Alert>
+            ) : (
+              <Alert severity="info" icon={<CircularProgress size={20} />} sx={{ mb: 3 }}>
+                <Typography variant="body2" fontWeight="bold">
+                  📍 Capturing your location...
+                </Typography>
+                <Typography variant="caption" display="block" color="text.secondary">
+                  We're automatically getting your GPS coordinates. If this fails, location will be captured when you add photos.
+                </Typography>
+              </Alert>
+            )}
 
-            <LocationPicker
-              position={location}
-              onPositionChange={setLocation}
-              onAddressChange={setAddress}
-            />
+            {location && (
+              <LocationPicker
+                position={location}
+                onPositionChange={setLocation}
+                onAddressChange={setAddress}
+              />
+            )}
 
             {address && (
               <Alert 
@@ -733,42 +897,52 @@ const ReportIssue = () => {
               Photos help authorities understand the issue better and resolve it faster
             </Typography>
 
+            <Alert severity="info" icon={<GpsFixed />} sx={{ mb: 3 }}>
+              <Typography variant="body2">
+                <strong>📍 Location Verification:</strong> {location ? 'Your location has been captured. Adding photos will verify you\'re at the reported location.' : 'When you add your first photo, we\'ll capture your GPS location automatically.'}
+              </Typography>
+            </Alert>
+
             <ImageUpload
               images={images}
               onImagesChange={setImages}
               maxImages={5}
+              onLocationCapture={(coords, addr) => {
+                setLocation(coords)
+                setAddress(addr)
+              }}
             />
 
             <Alert severity="info" sx={{ mt: 3 }}>
-              <Typography variant="body2">
+              <Typography variant="body2" sx={{ mb: 1 }}>
                 <strong>Tips for good photos:</strong>
-                <List dense sx={{ pl: 2 }}>
-                  <ListItem sx={{ py: 0 }}>
-                    <ListItemIcon sx={{ minWidth: 30 }}>
-                      <Info fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText primary="Take clear, well-lit photos" />
-                  </ListItem>
-                  <ListItem sx={{ py: 0 }}>
-                    <ListItemIcon sx={{ minWidth: 30 }}>
-                      <Info fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText primary="Include a wide shot to show context" />
-                  </ListItem>
-                  <ListItem sx={{ py: 0 }}>
-                    <ListItemIcon sx={{ minWidth: 30 }}>
-                      <Info fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText primary="Take close-ups to show details" />
-                  </ListItem>
-                  <ListItem sx={{ py: 0 }}>
-                    <ListItemIcon sx={{ minWidth: 30 }}>
-                      <Info fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText primary="If safe, include something for scale (e.g., a person, vehicle)" />
-                  </ListItem>
-                </List>
               </Typography>
+              <List dense sx={{ pl: 2 }}>
+                <ListItem sx={{ py: 0 }}>
+                  <ListItemIcon sx={{ minWidth: 30 }}>
+                    <Info fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText primary="Take clear, well-lit photos" />
+                </ListItem>
+                <ListItem sx={{ py: 0 }}>
+                  <ListItemIcon sx={{ minWidth: 30 }}>
+                    <Info fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText primary="Include a wide shot to show context" />
+                </ListItem>
+                <ListItem sx={{ py: 0 }}>
+                  <ListItemIcon sx={{ minWidth: 30 }}>
+                    <Info fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText primary="Take close-ups to show details" />
+                </ListItem>
+                <ListItem sx={{ py: 0 }}>
+                  <ListItemIcon sx={{ minWidth: 30 }}>
+                    <Info fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText primary="If safe, include something for scale (e.g., a person, vehicle)" />
+                </ListItem>
+              </List>
             </Alert>
           </Box>
         )}

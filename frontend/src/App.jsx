@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { ThemeProvider, createTheme } from '@mui/material'
 import { CssBaseline } from '@mui/material'
+import { useMemo, useState } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './contexts/AuthContext'
 
@@ -24,26 +25,35 @@ import AdminDashboard from './pages/admin/Dashboard'
 import AdminLogin from './pages/admin/Login'
 import SetupWizard from './components/setup/SetupWizard'
 import ReportIssue from './pages/ReportIssue'
+import About from './pages/About'
+import Contact from './pages/Contact'
+import Issues from './pages/user/Issues'
+import Settings from './pages/user/Settings'
+import Activity from './pages/user/Activity'
+import Analytics from './pages/user/Analytics'
 
 // Components
 import ProtectedRoute from './components/Auth/ProtectedRoute'
 
-// Theme
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-    background: {
-      default: '#f5f5f5',
-    },
-  },
-})
-
 function App() {
+  const [mode, setMode] = useState('light')
+
+  const theme = useMemo(() => createTheme({
+    palette: {
+      mode,
+      primary: { main: '#1976d2' },
+      secondary: { main: '#dc004e' },
+      background: {
+        default: mode === 'light' ? '#f5f5f5' : '#0f1115',
+        paper: mode === 'light' ? '#ffffff' : '#141821',
+      },
+    },
+  }), [mode])
+
+  const toggleColorMode = () => {
+    setMode((prev) => (prev === 'light' ? 'dark' : 'light'))
+  }
+
   // Detect if accessing via admin subdomain
   const isAdminSubdomain = typeof window !== 'undefined' && 
     window.location.hostname.startsWith('admin.')
@@ -79,7 +89,9 @@ function App() {
                 <Route path="/register" element={<PublicLayout><Register /></PublicLayout>} />
                 <Route path="/forgot-password" element={<PublicLayout><ForgotPassword /></PublicLayout>} />
                 <Route path="/verify-email" element={<PublicLayout><VerifyEmail /></PublicLayout>} />
-                <Route path="/report" element={<PublicLayout><ReportIssue /></PublicLayout>} />
+                {/* Report Issue moved under protected route as /report-issue */}
+                <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
+                <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
                 
                 {/* Protected User Routes */}
                 <Route path="/profile" element={
@@ -89,31 +101,73 @@ function App() {
                     </PublicLayout>
                   </ProtectedRoute>
                 } />
+                <Route path="/report-issue" element={
+                  <ProtectedRoute>
+                    <MainLayout toggleColorMode={toggleColorMode}>
+                      <ReportIssue />
+                    </MainLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/issues" element={
+                  <ProtectedRoute>
+                    <MainLayout toggleColorMode={toggleColorMode}>
+                      <Issues />
+                    </MainLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/my-reports" element={
+                  <ProtectedRoute>
+                    <MainLayout toggleColorMode={toggleColorMode}>
+                      <Reports />
+                    </MainLayout>
+                  </ProtectedRoute>
+                } />
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
-                    <MainLayout>
+                    <MainLayout toggleColorMode={toggleColorMode}>
                       <Dashboard />
                     </MainLayout>
                   </ProtectedRoute>
                 } />
                 <Route path="/reports" element={
                   <ProtectedRoute>
-                    <MainLayout>
+                    <MainLayout toggleColorMode={toggleColorMode}>
                       <Reports />
                     </MainLayout>
                   </ProtectedRoute>
                 } />
                 <Route path="/map" element={
                   <ProtectedRoute>
-                    <MainLayout>
+                    <MainLayout toggleColorMode={toggleColorMode}>
                       <Map />
                     </MainLayout>
                   </ProtectedRoute>
                 } />
                 <Route path="/history" element={
                   <ProtectedRoute>
-                    <MainLayout>
+                    <MainLayout toggleColorMode={toggleColorMode}>
                       <History />
+                    </MainLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/settings" element={
+                  <ProtectedRoute>
+                    <MainLayout toggleColorMode={toggleColorMode}>
+                      <Settings />
+                    </MainLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/activity" element={
+                  <ProtectedRoute>
+                    <MainLayout toggleColorMode={toggleColorMode}>
+                      <Activity />
+                    </MainLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/analytics" element={
+                  <ProtectedRoute>
+                    <MainLayout toggleColorMode={toggleColorMode}>
+                      <Analytics />
                     </MainLayout>
                   </ProtectedRoute>
                 } />

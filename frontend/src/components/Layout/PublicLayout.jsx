@@ -164,8 +164,7 @@ const ReportButton = memo(({ onClick, mobile = false, fullWidth = false }) => {
 
   return (
     <Button
-      component={mobile ? 'button' : RouterLink}
-      to={mobile ? null : '/login'}
+      component={'button'}
       variant="contained"
       startIcon={<ReportProblemIcon />}
       onClick={onClick}
@@ -577,8 +576,12 @@ const PublicLayout = ({ children }) => {
   }, [])
 
   const handleReportIssue = useCallback(() => {
-    navigate('/report')
-  }, [navigate])
+    if (isAuthenticated) {
+      navigate('/report-issue')
+    } else {
+      navigate('/login', { state: { from: '/report-issue' } })
+    }
+  }, [navigate, isAuthenticated])
 
   const handleLogout = useCallback(() => {
     logout()
