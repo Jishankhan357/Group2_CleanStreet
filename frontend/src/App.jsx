@@ -21,7 +21,11 @@ import Dashboard from './pages/user/Dashboard'
 import Reports from './pages/user/Reports'
 import Map from './pages/user/Map'
 import History from './pages/user/History'
+import AdminHome from './pages/admin/Home'
 import AdminDashboard from './pages/admin/Dashboard'
+import AdminUsers from './pages/admin/Users'
+import AdminReports from './pages/admin/Reports'
+import AdminSettings from './pages/admin/Settings'
 import AdminLogin from './pages/admin/Login'
 import SetupWizard from './components/setup/SetupWizard'
 import ReportIssue from './pages/ReportIssue'
@@ -68,9 +72,16 @@ function App() {
             {/* Admin Subdomain Routes */}
             {isAdminSubdomain ? (
               <>
-                <Route path="/" element={<Navigate to="/login" />} />
+                <Route path="/" element={<Navigate to="/home" />} />
                 <Route path="/setup" element={<SetupWizard />} />
                 <Route path="/login" element={<PublicLayout><AdminLogin /></PublicLayout>} />
+                <Route path="/home" element={
+                  <ProtectedRoute adminOnly>
+                    <AdminLayout>
+                      <AdminHome />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } />
                 <Route path="/dashboard" element={
                   <ProtectedRoute adminOnly>
                     <AdminLayout>
@@ -78,7 +89,28 @@ function App() {
                     </AdminLayout>
                   </ProtectedRoute>
                 } />
-                <Route path="*" element={<Navigate to="/login" />} />
+                <Route path="/users" element={
+                  <ProtectedRoute adminOnly>
+                    <AdminLayout>
+                      <AdminUsers />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/reports" element={
+                  <ProtectedRoute adminOnly>
+                    <AdminLayout>
+                      <AdminReports />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/settings" element={
+                  <ProtectedRoute adminOnly>
+                    <AdminLayout>
+                      <AdminSettings />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="*" element={<Navigate to="/home" />} />
               </>
             ) : (
               <>
@@ -174,10 +206,38 @@ function App() {
                 
                 {/* Admin Path Routes (fallback) */}
                 <Route path="/admin/login" element={<PublicLayout><AdminLogin /></PublicLayout>} />
+                <Route path="/admin/home" element={
+                  <ProtectedRoute adminOnly>
+                    <AdminLayout>
+                      <AdminHome />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } />
                 <Route path="/admin/dashboard" element={
                   <ProtectedRoute adminOnly>
                     <AdminLayout>
                       <AdminDashboard />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/users" element={
+                  <ProtectedRoute adminOnly>
+                    <AdminLayout>
+                      <AdminUsers />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/reports" element={
+                  <ProtectedRoute adminOnly>
+                    <AdminLayout>
+                      <AdminReports />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/settings" element={
+                  <ProtectedRoute adminOnly>
+                    <AdminLayout>
+                      <AdminSettings />
                     </AdminLayout>
                   </ProtectedRoute>
                 } />

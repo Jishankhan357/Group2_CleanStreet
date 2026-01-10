@@ -23,6 +23,7 @@ import {
 } from '@mui/material'
 import {
   Menu as MenuIcon,
+  Home as HomeIcon,
   Dashboard as DashboardIcon,
   People as PeopleIcon,
   Settings as SettingsIcon,
@@ -77,6 +78,11 @@ const AdminLayout = ({ children }) => {
     window.location.hostname.startsWith('admin.')
 
   const menuItems = [
+    { 
+      text: 'Home', 
+      icon: <HomeIcon />, 
+      path: isAdminSubdomain ? '/home' : '/admin/home' 
+    },
     { 
       text: 'Dashboard', 
       icon: <DashboardIcon />, 
@@ -163,8 +169,8 @@ const AdminLayout = ({ children }) => {
       <AppBar
         position="fixed"
         sx={{
-          width: { md: `calc(100% - ${drawerWidth}px)` },
-          ml: { md: `${drawerWidth}px` },
+          width: '100%',
+          ml: 0,
           bgcolor: 'background.paper',
           color: 'text.primary',
           boxShadow: 1
@@ -175,7 +181,7 @@ const AdminLayout = ({ children }) => {
             color="inherit"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
+            sx={{ mr: 2, display: 'inline-flex' }}
           >
             <MenuIcon />
           </IconButton>
@@ -233,32 +239,16 @@ const AdminLayout = ({ children }) => {
       </AppBar>
 
       {/* Drawer */}
-      <Box
-        component="nav"
-        sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
-      >
-        {/* Mobile drawer */}
+      <Box component="nav" sx={{ width: 0, flexShrink: 0 }}>
         <Drawer
           variant="temporary"
           open={mobileOpen}
           onClose={handleDrawerToggle}
           ModalProps={{ keepMounted: true }}
           sx={{
-            display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            display: { xs: 'block', md: 'block' },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth }
           }}
-        >
-          {drawer}
-        </Drawer>
-        
-        {/* Desktop drawer */}
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-          }}
-          open
         >
           {drawer}
         </Drawer>
@@ -270,7 +260,7 @@ const AdminLayout = ({ children }) => {
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { md: `calc(100% - ${drawerWidth}px)` },
+          width: '100%',
           mt: 8,
           bgcolor: 'background.default',
           minHeight: '100vh'
