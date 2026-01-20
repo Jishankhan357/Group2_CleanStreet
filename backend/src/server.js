@@ -1,4 +1,8 @@
 import dotenv from 'dotenv'
+
+// Load environment variables FIRST - must be before other imports that use env vars
+dotenv.config()
+
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
@@ -15,9 +19,6 @@ import { apiLimiter } from './middleware/rateLimiter.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
-
-// Load environment variables FIRST with correct path
-dotenv.config({ path: path.join(__dirname, '..', '.env') })
 
 const app = express()
 

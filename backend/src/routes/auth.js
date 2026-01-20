@@ -135,7 +135,8 @@ router.post('/login', authLimiter, (req, res, next) => {
         success: true,
         message: 'Login successful',
         user: {
-          id: user._id,
+          _id: user._id,
+          id: user._id, // Keep both for compatibility
           email: user.email,
           name: user.name,
           role: user.role,
@@ -325,7 +326,8 @@ router.get('/me', isAuthenticated, (req, res) => {
   res.json({
     success: true,
     user: {
-      id: req.user._id,
+      _id: req.user._id,
+      id: req.user._id, // Keep both for compatibility
       email: req.user.email,
       name: req.user.name,
       role: req.user.role,

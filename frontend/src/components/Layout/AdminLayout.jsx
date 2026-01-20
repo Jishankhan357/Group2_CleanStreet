@@ -30,7 +30,8 @@ import {
   Assignment as AssignmentIcon,
   Notifications as NotificationsIcon,
   AdminPanelSettings as AdminIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  Groups as GroupsIcon
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import logoSvg from '../../assets/images/logo.svg'
@@ -87,6 +88,11 @@ const AdminLayout = ({ children }) => {
       text: 'Dashboard', 
       icon: <DashboardIcon />, 
       path: isAdminSubdomain ? '/dashboard' : '/admin/dashboard' 
+    },
+    { 
+      text: 'Community', 
+      icon: <GroupsIcon />, 
+      path: isAdminSubdomain ? '/community' : '/admin/community' 
     },
     { 
       text: 'Users', 

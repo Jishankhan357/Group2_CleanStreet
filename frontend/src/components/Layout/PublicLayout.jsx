@@ -382,12 +382,16 @@ const Footer = memo(() => {
     <Box 
       component="footer" 
       sx={{ 
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
         borderTop: '1px solid',
         borderColor: alpha(theme.palette.divider, 0.1),
-        py: 4,
-        mt: 'auto',
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,249,255,0.95) 100%)',
-        backdropFilter: 'blur(10px)'
+        py: 2,
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,249,255,0.98) 100%)',
+        backdropFilter: 'blur(10px)',
+        zIndex: 1000,
       }}
     >
       <Container maxWidth="lg">
@@ -396,37 +400,39 @@ const Footer = memo(() => {
           flexDirection: { xs: 'column', md: 'row' },
           justifyContent: 'space-between', 
           alignItems: 'center',
-          gap: 3
+          gap: { xs: 1, md: 2 }
         }}>
           {/* Logo and Tagline */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Box
               component="img"
               src={logoSvg}
               alt="Clean Street"
-              sx={{ height: 32, width: 32 }}
+              sx={{ height: 24, width: 24 }}
             />
             <Box>
-              <Typography variant="h6" color="primary" sx={{ fontWeight: 800 }}>
+              <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
                 Clean Street
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'none', md: 'block' } }}>
                 Community-powered city improvement
               </Typography>
             </Box>
           </Box>
 
           {/* Quick Links */}
-          <Box sx={{ display: 'flex', gap: 3 }}>
+          <Box sx={{ display: 'flex', gap: { xs: 2, md: 3 } }}>
             {quickLinks.map((link) => (
               <Button
                 key={link.to}
                 component={RouterLink}
                 to={link.to}
+                size="small"
                 sx={{ 
                   fontWeight: 500, 
                   textTransform: 'none',
                   color: 'text.secondary',
+                  fontSize: '0.875rem',
                   '&:hover': { color: 'primary.main' }
                 }}
               >
@@ -434,21 +440,28 @@ const Footer = memo(() => {
               </Button>
             ))}
           </Box>
+
+          {/* Copyright - Inline on desktop */}
+          <Typography 
+            variant="caption" 
+            color="text.secondary"
+            sx={{ display: { xs: 'none', md: 'block' } }}
+          >
+            © {new Date().getFullYear()} Clean Street
+          </Typography>
         </Box>
 
-        {/* Copyright */}
+        {/* Copyright - Mobile only */}
         <Typography 
-          variant="body2" 
+          variant="caption" 
           color="text.secondary" 
           align="center"
           sx={{ 
-            mt: 4, 
-            pt: 3, 
-            borderTop: '1px solid',
-            borderColor: alpha(theme.palette.divider, 0.1)
+            mt: 1,
+            display: { xs: 'block', md: 'none' }
           }}
         >
-          © {new Date().getFullYear()} Clean Street. Making cities better, together.
+          © {new Date().getFullYear()} Clean Street
         </Typography>
       </Container>
     </Box>
@@ -599,7 +612,8 @@ const PublicLayout = ({ children }) => {
       minHeight: '100vh', 
       bgcolor: 'background.default',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      pb: { xs: '130px', md: '60px' }
     }}>
       <AppBar 
         position="sticky" 

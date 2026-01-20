@@ -1,6 +1,8 @@
 import express from 'express'
 import Report from '../models/Report.js'
 import { body, validationResult } from 'express-validator'
+import { upload } from '../config/multer.js'
+import { uploadImage, deleteImage } from '../config/cloudinary.js'
 
 const router = express.Router()
 
@@ -15,6 +17,40 @@ const isAuthenticated = (req, res, next) => {
   })
 }
 
+// Upload image to Cloudinary
+router.post('/upload-image', isAuthenticated, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No image file provided'
+      })
+    }
+
+    // Generate unique filename
+    const fileName = `${req.user._id}-${Date.now()}-${Math.random().toString(36).substring(7)}`
+
+    // Upload to Cloudinary
+    const uploadResult = await uploadImage(req.file.buffer, fileName)
+
+    res.json({
+      success: true,
+      message: 'Image uploaded successfully',
+      image: {
+        url: uploadResult.secure_url,
+        public_id: uploadResult.public_id,
+        thumbnail: uploadResult.secure_url.replace('/upload/', '/upload/w_300,h_300,c_fill/')
+      }
+    })
+  } catch (error) {
+    console.error('Image upload error:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to upload image'
+    })
+  }
+})
+
 // Create a new report
 router.post('/create', isAuthenticated, [
   body('category').isIn(['garbage', 'pothole', 'water', 'streetlight', 'park', 'sewage', 'vandalism', 'other']),
@@ -23,7 +59,8 @@ router.post('/create', isAuthenticated, [
   body('address').trim().notEmpty(),
   body('latitude').isFloat(),
   body('longitude').isFloat(),
-  body('priority').optional().isIn(['low', 'medium', 'high', 'critical'])
+  body('priority').optional().isIn(['low', 'medium', 'high', 'critical']),
+  body('images').optional().isArray()
 ], async (req, res) => {
   try {
     const errors = validationResult(req)
@@ -43,8 +80,19 @@ router.post('/create', isAuthenticated, [
       longitude,
       address,
       isAnonymous = false,
-      allowComments = true
+      allowComments = true,
+      images = []
     } = req.body
+
+    // Validate images array
+    let processedImages = []
+    if (images && Array.isArray(images)) {
+      processedImages = images.map(img => ({
+        url: img.url,
+        public_id: img.public_id,
+        uploadedAt: new Date()
+      }))
+    }
 
     const report = new Report({
       userId: req.user._id,
@@ -60,7 +108,8 @@ router.post('/create', isAuthenticated, [
       longitude,
       address,
       isAnonymous,
-      allowComments
+      allowComments,
+      images: processedImages
     })
 
     await report.save()
@@ -73,6 +122,7 @@ router.post('/create', isAuthenticated, [
         category: report.category,
         title: report.title,
         status: report.status,
+        images: report.images,
         createdAt: report.createdAt
       }
     })
@@ -195,6 +245,7 @@ router.get('/', async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(Number(limit))
+      .populate('userId', 'name profilePicture isAnonymous')
       .lean()
 
     const total = await Report.countDocuments(filter)
@@ -212,6 +263,345 @@ router.get('/', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch reports'
+    })
+  }
+})
+
+// Get all reports for community page with full details
+router.get('/community/feed', async (req, res) => {
+  try {
+    const { category, limit = 20, page = 1, search } = req.query
+    const skip = (page - 1) * limit
+
+    const filter = {}
+    if (category && category !== 'all') filter.category = category
+    
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { address: { $regex: search, $options: 'i' } }
+      ]
+    }
+
+    const reports = await Report.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit))
+      .populate('userId', 'name profilePicture _id')
+      .populate('likes', 'name')
+      .select('-isAnonymous')
+      .lean()
+
+    const total = await Report.countDocuments(filter)
+
+    res.json({
+      success: true,
+      reports,
+      pagination: {
+        total,
+        page: Number(page),
+        pages: Math.ceil(total / limit)
+      }
+    })
+  } catch (error) {
+    console.error('Community feed error:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch community feed'
+    })
+  }
+})
+
+// Get report with all comments
+router.get('/community/post/:id', async (req, res) => {
+  try {
+    const report = await Report.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { views: 1 } },
+      { new: true }
+    )
+      .populate('userId', 'name profilePicture email')
+      .populate('likes', 'name profilePicture')
+      .populate('comments.userId', 'name profilePicture')
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        error: 'Report not found'
+      })
+    }
+
+    res.json({
+      success: true,
+      report
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch report'
+    })
+  }
+})
+
+// Add comment to report
+router.post('/:id/comment', isAuthenticated, [
+  body('text').trim().notEmpty().isLength({ min: 1, max: 1000 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      })
+    }
+
+    const { text } = req.body
+    const report = await Report.findById(req.params.id)
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        error: 'Report not found'
+      })
+    }
+
+    if (!report.allowComments) {
+      return res.status(403).json({
+        success: false,
+        error: 'Comments are disabled for this report'
+      })
+    }
+
+    const comment = {
+      userId: req.user._id,
+      userName: req.user.name,
+      userProfilePicture: req.user.profilePicture,
+      text,
+      likes: [],
+      createdAt: new Date()
+    }
+
+    report.comments.push(comment)
+    await report.save()
+
+    res.status(201).json({
+      success: true,
+      message: 'Comment added successfully',
+      comment
+    })
+  } catch (error) {
+    console.error('Add comment error:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to add comment'
+    })
+  }
+})
+
+// Delete comment from report
+router.delete('/:id/comment/:commentId', isAuthenticated, async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id)
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        error: 'Report not found'
+      })
+    }
+
+    const comment = report.comments.id(req.params.commentId)
+
+    if (!comment) {
+      return res.status(404).json({
+        success: false,
+        error: 'Comment not found'
+      })
+    }
+
+    if (comment.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: 'Not authorized to delete this comment'
+      })
+    }
+
+    report.comments.id(req.params.commentId).deleteOne()
+    await report.save()
+
+    res.json({
+      success: true,
+      message: 'Comment deleted successfully'
+    })
+  } catch (error) {
+    console.error('Delete comment error:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete comment'
+    })
+  }
+})
+
+// Like/Unlike report
+router.post('/:id/like', isAuthenticated, async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id)
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        error: 'Report not found'
+      })
+    }
+
+    const userLiked = report.likes.includes(req.user._id)
+
+    if (userLiked) {
+      report.likes = report.likes.filter(id => id.toString() !== req.user._id.toString())
+    } else {
+      report.likes.push(req.user._id)
+    }
+
+    await report.save()
+
+    res.json({
+      success: true,
+      message: userLiked ? 'Like removed' : 'Report liked',
+      liked: !userLiked,
+      likesCount: report.likes.length
+    })
+  } catch (error) {
+    console.error('Like error:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to like report'
+    })
+  }
+})
+
+// Like/Unlike comment
+router.post('/:id/comment/:commentId/like', isAuthenticated, async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id)
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        error: 'Report not found'
+      })
+    }
+
+    const comment = report.comments.id(req.params.commentId)
+
+    if (!comment) {
+      return res.status(404).json({
+        success: false,
+        error: 'Comment not found'
+      })
+    }
+
+    const userLiked = comment.likes.includes(req.user._id)
+
+    if (userLiked) {
+      comment.likes = comment.likes.filter(id => id.toString() !== req.user._id.toString())
+    } else {
+      comment.likes.push(req.user._id)
+    }
+
+    await report.save()
+
+    res.json({
+      success: true,
+      message: userLiked ? 'Like removed from comment' : 'Comment liked',
+      liked: !userLiked,
+      likesCount: comment.likes.length
+    })
+  } catch (error) {
+    console.error('Like comment error:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to like comment'
+    })
+  }
+})
+
+// Increment share count
+router.post('/:id/share', async (req, res) => {
+  try {
+    const report = await Report.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { shares: 1 } },
+      { new: true }
+    )
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        error: 'Report not found'
+      })
+    }
+
+    res.json({
+      success: true,
+      message: 'Share count incremented',
+      sharesCount: report.shares
+    })
+  } catch (error) {
+    console.error('Share error:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to record share'
+    })
+  }
+})
+
+// Delete report (only by report owner)
+router.delete('/:id', isAuthenticated, async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id)
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        error: 'Report not found'
+      })
+    }
+
+    // Check if the user is the owner of the report
+    if (report.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: 'You are not authorized to delete this report'
+      })
+    }
+
+    // Delete images from Cloudinary
+    if (report.images && report.images.length > 0) {
+      for (const image of report.images) {
+        if (image.public_id) {
+          try {
+            await deleteImage(image.public_id)
+          } catch (err) {
+            console.error('Failed to delete image from Cloudinary:', err)
+          }
+        }
+      }
+    }
+
+    // Delete the report
+    await Report.findByIdAndDelete(req.params.id)
+
+    res.json({
+      success: true,
+      message: 'Report deleted successfully'
+    })
+  } catch (error) {
+    console.error('Delete report error:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete report'
     })
   }
 })

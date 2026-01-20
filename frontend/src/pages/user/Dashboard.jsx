@@ -373,6 +373,17 @@ const Dashboard = () => {
                     <ActionButton
                       fullWidth
                       variant="outlined"
+                      color="warning"
+                      startIcon={<LocationOn />}
+                      onClick={() => navigate('/community')}
+                    >
+                      Community
+                    </ActionButton>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <ActionButton
+                      fullWidth
+                      variant="outlined"
                       color="secondary"
                       startIcon={<TrendingUpIcon />}
                       onClick={() => navigate('/analytics')}

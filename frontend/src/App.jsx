@@ -31,10 +31,10 @@ import SetupWizard from './components/setup/SetupWizard'
 import ReportIssue from './pages/ReportIssue'
 import About from './pages/About'
 import Contact from './pages/Contact'
-import Issues from './pages/user/Issues'
 import Settings from './pages/user/Settings'
 import Activity from './pages/user/Activity'
 import Analytics from './pages/user/Analytics'
+import Community from './pages/user/Community'
 
 // Components
 import ProtectedRoute from './components/Auth/ProtectedRoute'
@@ -110,6 +110,7 @@ function App() {
                     </AdminLayout>
                   </ProtectedRoute>
                 } />
+                <Route path="/community" element={<PublicLayout><Community /></PublicLayout>} />
                 <Route path="*" element={<Navigate to="/home" />} />
               </>
             ) : (
@@ -124,6 +125,7 @@ function App() {
                 {/* Report Issue moved under protected route as /report-issue */}
                 <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
                 <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
+                <Route path="/community" element={<PublicLayout><Community /></PublicLayout>} />
                 
                 {/* Protected User Routes */}
                 <Route path="/profile" element={
@@ -140,13 +142,8 @@ function App() {
                     </MainLayout>
                   </ProtectedRoute>
                 } />
-                <Route path="/issues" element={
-                  <ProtectedRoute>
-                    <MainLayout toggleColorMode={toggleColorMode}>
-                      <Issues />
-                    </MainLayout>
-                  </ProtectedRoute>
-                } />
+                {/* Redirect legacy Issues page to Community */}
+                <Route path="/issues" element={<Navigate to="/community" replace />} />
                 <Route path="/my-reports" element={
                   <ProtectedRoute>
                     <MainLayout toggleColorMode={toggleColorMode}>
@@ -213,10 +210,10 @@ function App() {
                     </AdminLayout>
                   </ProtectedRoute>
                 } />
-                <Route path="/admin/dashboard" element={
+                <Route path="/admin/community" element={
                   <ProtectedRoute adminOnly>
                     <AdminLayout>
-                      <AdminDashboard />
+                      <Community />
                     </AdminLayout>
                   </ProtectedRoute>
                 } />
@@ -227,13 +224,13 @@ function App() {
                     </AdminLayout>
                   </ProtectedRoute>
                 } />
-                <Route path="/admin/reports" element={
-                  <ProtectedRoute adminOnly>
-                    <AdminLayout>
-                      <AdminReports />
-                    </AdminLayout>
-                  </ProtectedRoute>
-                } />
+                  <Route path="/admin/community" element={
+                    <ProtectedRoute adminOnly>
+                      <AdminLayout>
+                        <Community />
+                      </AdminLayout>
+                    </ProtectedRoute>
+                  } />
                 <Route path="/admin/settings" element={
                   <ProtectedRoute adminOnly>
                     <AdminLayout>

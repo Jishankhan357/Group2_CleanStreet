@@ -851,6 +851,7 @@ const MainLayout = ({ children, toggleColorMode }) => {
         'map': 'Map',
         'reports': 'Reports',
         'issues': 'Issues',
+        'community': 'Community',
         'my-reports': 'My Reports',
         'report-issue': 'Report Issue',
         'dashboard': 'Dashboard',
@@ -944,11 +945,11 @@ const MainLayout = ({ children, toggleColorMode }) => {
       color: 'primary'
     },
     { 
-      label: 'Issues', 
-      path: '/issues', 
-      icon: <BugReport />, 
+      label: 'Community', 
+      path: '/community', 
+      icon: <LocationOn />, 
       show: true,
-      color: 'error'
+      color: 'warning'
     },
     { 
       label: 'My Reports', 

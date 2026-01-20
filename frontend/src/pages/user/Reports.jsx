@@ -16,11 +16,21 @@ import {
   Button,
   Card,
   CardContent,
-  Grid
+  Grid,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
+  CardMedia,
+  Stack
 } from '@mui/material'
+import { Delete, Image as ImageIcon } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../../contexts/AuthContext'
+import toast from 'react-hot-toast'
 
 const Reports = () => {
   const navigate = useNavigate()
@@ -28,6 +38,9 @@ const Reports = () => {
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [reportToDelete, setReportToDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     fetchUserReports()
@@ -75,6 +88,34 @@ const Reports = () => {
       other: 'Other'
     }
     return labels[category] || category
+  }
+
+  const handleDeleteClick = (report) => {
+    setReportToDelete(report)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!reportToDelete) return
+
+    setDeleting(true)
+    try {
+      const response = await axios.delete(`/api/reports/${reportToDelete._id}`, {
+        withCredentials: true
+      })
+
+      if (response.data.success) {
+        toast.success('Report deleted successfully')
+        setReports(reports.filter(r => r._id !== reportToDelete._id))
+        setDeleteDialogOpen(false)
+        setReportToDelete(null)
+      }
+    } catch (err) {
+      console.error('Delete error:', err)
+      toast.error(err.response?.data?.error || 'Failed to delete report')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   if (loading) {
@@ -131,7 +172,7 @@ const Reports = () => {
                         {report.address}
                       </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                       <Chip
                         label={getCategoryLabel(report.category)}
                         size="small"
@@ -149,12 +190,55 @@ const Reports = () => {
                         size="small"
                         variant="outlined"
                       />
+                      <IconButton
+                        onClick={() => handleDeleteClick(report)}
+                        size="small"
+                        color="error"
+                        sx={{ ml: 1 }}
+                      >
+                        <Delete />
+                      </IconButton>
                     </Box>
                   </Box>
 
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                     {report.description}
                   </Typography>
+
+                  {/* Display Images */}
+                  {report.images && report.images.length > 0 && (
+                    <Box sx={{ mb: 2 }}>
+                      <Stack direction="row" spacing={1} sx={{ overflowX: 'auto', pb: 1 }}>
+                        {report.images.map((image, idx) => (
+                          <Box
+                            key={idx}
+                            component="img"
+                            src={image.url}
+                            alt={`Report image ${idx + 1}`}
+                            sx={{
+                              width: 120,
+                              height: 120,
+                              objectFit: 'cover',
+                              borderRadius: 1,
+                              border: '1px solid #e0e0e0',
+                              flexShrink: 0,
+                              cursor: 'pointer',
+                              '&:hover': {
+                                opacity: 0.8,
+                                transform: 'scale(1.05)',
+                                transition: 'all 0.2s'
+                              }
+                            }}
+                            onClick={() => window.open(image.url, '_blank')}
+                          />
+                        ))}
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                        <ImageIcon sx={{ fontSize: 14 }} />
+                        {report.images.length} {report.images.length === 1 ? 'image' : 'images'} attached
+                      </Typography>
+                    </Box>
+                  )}
 
                   <Box sx={{ display: 'flex', gap: 4, mt: 2, pt: 2, borderTop: '1px solid #f0f0f0' }}>
                     <Box>
@@ -188,6 +272,43 @@ const Reports = () => {
           ))}
         </Grid>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => !deleting && setDeleteDialogOpen(false)}
+      >
+        <DialogTitle>Delete Report?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this report? This action cannot be undone.
+            {reportToDelete && (
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+                <Typography variant="subtitle2" fontWeight="bold">
+                  {reportToDelete.title}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {reportToDelete.address}
+                </Typography>
+              </Box>
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={deleting}
+            startIcon={deleting ? <CircularProgress size={16} /> : <Delete />}
+          >
+            {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   )
 }

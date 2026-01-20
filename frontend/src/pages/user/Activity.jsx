@@ -4,30 +4,20 @@ import {
   Paper,
   Typography,
   Box,
-  Grid,
   Card,
   CardContent,
   Avatar,
   Chip,
-  Divider,
-  IconButton,
   CircularProgress,
   alpha,
   Stack,
-  Tooltip
 } from '@mui/material'
 import {
   BugReport,
   CheckCircle,
   Comment,
   ThumbUp,
-  Edit,
-  Delete,
-  Visibility,
   AccessTime,
-  TrendingUp,
-  Warning,
-  Info,
   LocationOn,
   Timeline as TimelineIcon
 } from '@mui/icons-material'
@@ -54,7 +44,7 @@ const Activity = () => {
   const { user } = useAuth()
   const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('all') // all, reports, comments, votes
+  const [filter, setFilter] = useState('all') // kept for future use
 
   useEffect(() => {
     fetchActivities()
@@ -160,128 +150,84 @@ const Activity = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-        {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h3" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <TimelineIcon sx={{ fontSize: 40, color: 'primary.main' }} />
-            Recent Activity
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Track all your actions and contributions to the community
-          </Typography>
-        </Box>
-
-        {/* Filter Chips */}
-        <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
-          <Stack direction="row" spacing={2} flexWrap="wrap">
-            <Chip
-              label="All Activity"
-              color={filter === 'all' ? 'primary' : 'default'}
-              onClick={() => setFilter('all')}
-              sx={{ fontWeight: 600 }}
-            />
-            <Chip
-              label="Reports"
-              color={filter === 'reports' ? 'primary' : 'default'}
-              onClick={() => setFilter('reports')}
-              icon={<BugReport />}
-              sx={{ fontWeight: 600 }}
-            />
-            <Chip
-              label="Comments"
-              color={filter === 'comments' ? 'primary' : 'default'}
-              onClick={() => setFilter('comments')}
-              icon={<Comment />}
-              sx={{ fontWeight: 600 }}
-            />
-            <Chip
-              label="Votes"
-              color={filter === 'votes' ? 'primary' : 'default'}
-              onClick={() => setFilter('votes')}
-              icon={<ThumbUp />}
-              sx={{ fontWeight: 600 }}
-            />
-          </Stack>
-        </Paper>
-
-        {/* Activity Timeline */}
-        <Grid container spacing={3}>
-          {activities.length === 0 ? (
-            <Grid item xs={12}>
-              <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 3 }}>
-                <TimelineIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-                <Typography variant="h6" color="text.secondary">
-                  No activity yet
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Start reporting issues to see your activity here
-                </Typography>
-              </Paper>
-            </Grid>
-          ) : (
-            activities.map((activity, index) => (
-              <Grid item xs={12} key={activity.id}>
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <ActivityCard>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', gap: 2 }}>
-                        {getActivityIcon(activity)}
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                            <Box>
-                              <Typography variant="h6" fontWeight="bold">
-                                {activity.action === 'created' ? 'Reported Issue' : 'Issue Resolved'}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <AccessTime sx={{ fontSize: 16 }} />
-                                {formatTimestamp(activity.timestamp)}
-                              </Typography>
-                            </Box>
-                            <Chip
-                              label={activity.status}
-                              color={getStatusColor(activity.status)}
-                              size="small"
-                              sx={{ textTransform: 'capitalize', fontWeight: 600 }}
-                            />
+      <Container maxWidth="md" sx={{ mt: 4, mb: 6 }}>
+        {/* Activity Feed */}
+        {activities.length === 0 ? (
+          <Box sx={{ maxWidth: 600, mx: 'auto' }}>
+            <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 3 }}>
+              <TimelineIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+              <Typography variant="h6" color="text.secondary">
+                No activity yet
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Start reporting issues to see your activity here
+              </Typography>
+            </Paper>
+          </Box>
+        ) : (
+          <Stack spacing={3} alignItems="center">
+            {activities.map((activity, index) => (
+              <motion.div
+                key={activity.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.04 }}
+                style={{ width: '100%', maxWidth: 600 }}
+              >
+                <ActivityCard>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      {getActivityIcon(activity)}
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                          <Box>
+                            <Typography variant="h6" fontWeight="bold">
+                              {activity.action === 'created' ? 'Reported Issue' : 'Issue Resolved'}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <AccessTime sx={{ fontSize: 16 }} />
+                              {formatTimestamp(activity.timestamp)}
+                            </Typography>
                           </Box>
+                          <Chip
+                            label={activity.status}
+                            color={getStatusColor(activity.status)}
+                            size="small"
+                            sx={{ textTransform: 'capitalize', fontWeight: 600 }}
+                          />
+                        </Box>
 
-                          <Typography variant="h6" sx={{ mb: 1 }}>
-                            {activity.title}
-                          </Typography>
+                        <Typography variant="h6" sx={{ mb: 1 }}>
+                          {activity.title}
+                        </Typography>
 
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                            {activity.description?.substring(0, 150)}
-                            {activity.description?.length > 150 ? '...' : ''}
-                          </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          {activity.description?.substring(0, 150)}
+                          {activity.description?.length > 150 ? '...' : ''}
+                        </Typography>
 
-                          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                            <Chip
-                              label={activity.category}
-                              size="small"
-                              variant="outlined"
-                              sx={{ textTransform: 'capitalize' }}
-                            />
-                            <Chip
-                              icon={<LocationOn sx={{ fontSize: 16 }} />}
-                              label={activity.location?.substring(0, 30) || 'Location not specified'}
-                              size="small"
-                              variant="outlined"
-                            />
-                          </Box>
+                        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                          <Chip
+                            label={activity.category}
+                            size="small"
+                            variant="outlined"
+                            sx={{ textTransform: 'capitalize' }}
+                          />
+                          <Chip
+                            icon={<LocationOn sx={{ fontSize: 16 }} />}
+                            label={activity.location?.substring(0, 30) || 'Location not specified'}
+                            size="small"
+                            variant="outlined"
+                          />
                         </Box>
                       </Box>
-                    </CardContent>
-                  </ActivityCard>
-                </motion.div>
-              </Grid>
-            ))
-          )}
-        </Grid>
+                    </Box>
+                  </CardContent>
+                </ActivityCard>
+              </motion.div>
+            ))}
+          </Stack>
+        )}
       </Container>
     </motion.div>
   )

@@ -732,6 +732,10 @@ const Home = () => {
     navigate('/map')
   }
 
+  const handleViewCommunity = () => {
+    navigate('/community')
+  }
+
   return (
     <Box sx={{ overflow: 'hidden', bgcolor: 'background.default' }}>
       {/* Hero Section */}
@@ -896,6 +900,32 @@ const Home = () => {
                         Explore Issues Map
                       </Button>
                     </Zoom>
+                    <Zoom in timeout={1200} style={{ transitionDelay: '600ms' }}>
+                      <Button
+                        variant="outlined"
+                        size="large"
+                        onClick={handleViewCommunity}
+                        startIcon={<GroupsIcon />}
+                        sx={{
+                          borderColor: 'rgba(255,255,255,0.3)',
+                          borderWidth: 2,
+                          color: 'white',
+                          px: 6,
+                          py: 2,
+                          borderRadius: 3,
+                          fontWeight: 600,
+                          '&:hover': { 
+                            borderColor: 'white',
+                            bgcolor: 'rgba(255,255,255,0.1)',
+                            transform: 'translateY(-3px)',
+                            borderWidth: 2,
+                          },
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        Visit Community
+                      </Button>
+                    </Zoom>
                   </Stack>
                   
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
@@ -1019,7 +1049,7 @@ const Home = () => {
                       }
                     }}
                     component={Link}
-                    to="/issues"
+                    to="/community"
                   >
                     View All Resolved Issues
                   </Button>

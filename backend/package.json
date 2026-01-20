@@ -11,24 +11,26 @@
     "system-status": "curl -X GET http://localhost:5000/api/system/status"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.9.0",
+    "connect-mongo": "^5.1.0",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "mongoose": "^7.5.0",
-    "bcryptjs": "^2.4.3",
-    "passport": "^0.7.0",
-    "passport-local": "^1.0.0",
-    "passport-google-oauth20": "^2.0.0",
+    "express": "^4.18.2",
+    "express-rate-limit": "^6.10.0",
     "express-session": "^1.17.3",
-    "connect-mongo": "^5.1.0",
+    "express-validator": "^7.0.1",
     "helmet": "^7.0.0",
+    "mongoose": "^7.5.0",
     "morgan": "^1.10.0",
+    "multer": "^2.0.2",
     "nodemailer": "^6.9.7",
     "otp-generator": "^4.0.1",
-    "redis": "^4.6.12",
-    "express-validator": "^7.0.1",
-    "express-rate-limit": "^6.10.0",
-    "cookie-parser": "^1.4.6"
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-local": "^1.0.0",
+    "redis": "^4.6.12"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

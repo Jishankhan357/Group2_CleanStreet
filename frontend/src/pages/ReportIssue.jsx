@@ -87,7 +87,8 @@ import axios from 'axios'
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import { toast } from 'react-toastify'
+import toast from 'react-hot-toast'
+import CloudinaryImageUpload from '../components/Community/CloudinaryImageUpload'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
@@ -599,7 +600,7 @@ const ReportIssue = () => {
     setError('')
 
     try {
-      // Prepare report data
+      // Prepare report data with Cloudinary images
       const reportData = {
         category,
         title,
@@ -609,7 +610,14 @@ const ReportIssue = () => {
         longitude: location[1],
         address,
         isAnonymous,
-        allowComments
+        allowComments,
+        // Include Cloudinary images
+        images: images
+          .filter(img => img.uploaded !== false && img.url) // Only include successfully uploaded images
+          .map(img => ({
+            url: img.url,
+            public_id: img.public_id
+          }))
       }
 
       console.log('Submitting report data:', reportData)
@@ -903,14 +911,10 @@ const ReportIssue = () => {
               </Typography>
             </Alert>
 
-            <ImageUpload
+            <CloudinaryImageUpload
               images={images}
               onImagesChange={setImages}
               maxImages={5}
-              onLocationCapture={(coords, addr) => {
-                setLocation(coords)
-                setAddress(addr)
-              }}
             />
 
             <Alert severity="info" sx={{ mt: 3 }}>

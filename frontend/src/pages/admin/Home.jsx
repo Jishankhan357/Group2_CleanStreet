@@ -23,7 +23,8 @@ import {
   ArrowRight,
   Home as HomeIcon,
   Dashboard as DashboardIcon,
-  Shield
+  Shield,
+  Groups
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -285,6 +286,15 @@ const AdminHome = () => {
               icon={People}
               color={theme.palette.primary.main}
               onClick={() => navigate(adminPath('users'))}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <QuickActionCard
+              title="Community"
+              description="View community issues"
+              icon={Groups}
+              color={theme.palette.warning.main}
+              onClick={() => navigate(adminPath('community'))}
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>

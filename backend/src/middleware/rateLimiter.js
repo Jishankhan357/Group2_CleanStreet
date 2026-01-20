@@ -50,14 +50,20 @@ export const otpRequestLimiter = rateLimit({
   keyGenerator: getKeyGenerator('email')
 })
 
-// API rate limiter for general endpoints (IP-based is fine here)
+// API rate limiter for general endpoints (prefer userId over IP to avoid noisy IP sharing)
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per windowMs
+  max: 1000, // generous limit to avoid false positives for authenticated users
   message: {
     success: false,
     error: 'Too many requests, please try again later'
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    if (req.user && req.user._id) {
+      return `user:${req.user._id.toString()}`
+    }
+    return req.ip || req.connection?.remoteAddress || 'unknown'
+  }
 })
