@@ -61,8 +61,13 @@ const registerSchema = yup.object({
     .oneOf([yup.ref('password'), null], 'Passwords must match')
     .required('Please confirm your password'),
   phone: yup.string()
-    .matches(/^[0-9]{10}$/, 'Phone number must be 10 digits')
-    .optional()
+  .notRequired()
+  .test(
+    'phone-validation',
+    'Phone number must be 10 digits',
+    value => !value || /^[0-9]{10}$/.test(value)
+  )
+
 })
 
 const Register = () => {

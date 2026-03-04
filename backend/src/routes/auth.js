@@ -31,7 +31,11 @@ router.post('/register', authLimiter, [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 6 }),
   body('name').trim().notEmpty(),
-  body('phone').optional().isMobilePhone()
+      body('phone')
+      .optional({ checkFalsy: true })
+      .isMobilePhone('en-IN')
+      .withMessage('Invalid phone number'),
+
 ], async (req, res) => {
   try {
     const errors = validationResult(req)
